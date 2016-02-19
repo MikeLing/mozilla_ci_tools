@@ -25,7 +25,7 @@ from mozhginfo.pushlog_client import (
 from mozci.utils.authentication import valid_credentials, get_credentials
 from mozci.utils.log_util import setup_logging
 from mozci.platforms import filter_buildernames
-from mozci.query_jobs import WARNING
+from mozci.query_jobs import WARNING, SUCCESS
 
 
 def parse_args(argv=None):
@@ -151,7 +151,7 @@ def parse_args(argv=None):
                         help="comma-separated treeherder filters to exclude.")
 
     parser.add_argument("--existing-only",
-                        action="store_false",
+                        action="store_true",
                         dest="existing_only",
                         help="Only trigger test job if the build jobs already exists.")
 
@@ -172,7 +172,7 @@ def validate_options(options):
     error_message = ""
     if not(options.buildernames or options.coalesced or options.fill_revision or
            options.trigger_tests_only or options.includes or options.exclude or
-           options.failed_jobs):
+           options.existing_only or options.failed_jobs):
         error_message = "A buildername is mandatory for all modes except --coalesced, " \
                         "--fill-revision, --trigger-only-test-jobs --include, --exclude" \
                         " and --failed-jobs. Use --buildername."
@@ -292,7 +292,6 @@ def main():
         LOG = setup_logging(logging.INFO)
 
     validate_options(options)
-
     if not valid_credentials():
         sys.exit(-1)
 
@@ -323,6 +322,9 @@ def main():
     else:
         mgr = BuildAPIManager()
 
+    trigger_build_if_missing = options.trigger_build_if_missing
+    if repo_name == 'try':
+        trigger_build_if_missing = False
     # Mode 1: Trigger coalesced jobs
     if options.coalesced:
         query_api = BuildApi()
@@ -370,6 +372,15 @@ def main():
             return
 
         if options.existing_only:
+            # we will query all successful job by given revision and only keep
+            # the those ones within the builder list been filted by exclude and include.
+            trigger_build_if_missing = False
+            existing_buildername = TreeherderApi().find_all_jobs_by_status(
+                repo_name=repo_name,
+                revision=revision,
+                status=SUCCESS)
+            buildernames = [buildername for buildername in existing_buildername
+                            if buildername in buildernames]
             cont = raw_input("The ones which have existing builds out of %i jobs will be triggered,\
                              do you wish to continue? y/n/d (d=show details) " % len(buildernames))
         else:
@@ -383,7 +394,7 @@ def main():
         if cont.lower() != 'y':
             exit(1)
 
-    # Mode 5: Use --existing-jobs or --failed-jobs to trigger jobs for particular revision
+    # Mode 5: Use --failed-jobs to trigger jobs for particular revision
     elif options.failed_jobs:
         buildernames = TreeherderApi().find_all_jobs_by_status(
             repo_name=repo_name,
@@ -419,7 +430,7 @@ def main():
                 times=options.times,
                 dry_run=options.dry_run,
                 files=options.files,
-                trigger_build_if_missing=options.trigger_build_if_missing
+                trigger_build_if_missing=trigger_build_if_missing
             )
         except Exception, e:
             LOG.exception(e)
