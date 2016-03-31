@@ -20,6 +20,7 @@ LOG = logging.getLogger('mozci')
 TC_TOOLS_HOST = 'https://tools.taskcluster.net'
 TC_TASK_INSPECTOR = "%s/task-inspector/#" % TC_TOOLS_HOST
 TC_TASK_GRAPH_INSPECTOR = "%s/task-graph-inspector/#" % TC_TOOLS_HOST
+TC_NAMESPACE = "gecko.v2.%(reponame)s.revision.%(revision)s.firefox.%(platform)s"
 
 
 def credentials_available():
@@ -289,3 +290,19 @@ def generate_task_graph(scopes, tasks, metadata):
         'metadata': metadata
     }
     return task_graph
+
+
+def get_taskid(revision, repo_name, platform):
+    index = taskcluster_client.Index()
+    namespace = TC_NAMESPACE % {'revision': revision,
+                                'repo_name': repo_name,
+                                'platform': platform}
+    LOG.info("The namespace of this task is %s" % namespace)
+    result = index.findTask(namespace)
+    return result['taskId']
+
+
+def get_artifacts(taskid, runid=0):
+    queue = taskcluster_client.Queue()
+    artifacts = queue.listArtifacts(taskid, runid)
+    return artifacts

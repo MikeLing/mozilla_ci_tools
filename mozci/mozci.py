@@ -18,7 +18,7 @@ from mozci.platforms import (
     is_downstream,
     list_builders,
 )
-from mozci.sources import buildjson
+from mozci.sources import buildjson, tc
 from mozci.query_jobs import (
     PENDING,
     RUNNING,
@@ -49,6 +49,12 @@ QUERY_SOURCE = BuildApi()
 
 # Set this value to False in your tool to prevent any sort of validation
 VALIDATE = True
+
+INSTALLER_SUFFIXES = ('.apk',  # Android
+                      '.tar.bz2', '.tar.gz',  # Linux
+                      '.dmg',  # Mac
+                      '.installer-stub.exe', '.installer.exe', '.exe', '.zip',  # Windows
+                      )
 
 
 def disable_validations():
@@ -159,7 +165,7 @@ def determine_trigger_objective(revision, buildername, trigger_build_if_missing=
         return build_buildername, None, None
 
     # Let's figure out which jobs are associated to such revision
-    query_api = BuildApi()
+    query_api = TreeherderApi()
     # Let's only look at jobs that match such build_buildername
     build_jobs = query_api.get_matching_jobs(repo_name, revision, build_buildername)
 
@@ -192,7 +198,10 @@ def determine_trigger_objective(revision, buildername, trigger_build_if_missing=
             continue
 
         # Successful or failed jobs may have the files we need
-        files = _find_files(job)
+        taskId = tc.get_taskid(revision=revision,
+                               repo_name=repo_name,
+                               platform=job['build_platform'])
+        files = _find_files(taskId)
 
         if files != [] and _all_urls_reachable(files.values()):
             working_job = job
@@ -259,48 +268,40 @@ def determine_trigger_objective(revision, buildername, trigger_build_if_missing=
         return builder_to_trigger, None, None
 
 
-def _status_info(job_schedule_info):
-    # Let's grab the last job
-    complete_at = job_schedule_info["requests"][0]["complete_at"]
-    request_id = job_schedule_info["requests"][0]["request_id"]
-
-    # NOTE: This call can take a bit of time
-    return buildjson.query_job_data(complete_at, request_id)
-
-
-def _find_files(job_schedule_info):
+def _find_files(taskId):
     """
     Find the files needed to trigger a job.
 
     Raises MozciError if the job status doesn't have a properties key.
     """
     files = {}
+    test_url = None
+    test_packages_url = None
+    installer_url = None
 
-    job_status = _status_info(job_schedule_info)
-
-    if job_status is None:
-        LOG.warning("We should not have received an empty status")
+    job_artifacts = tc.get_artifacts(taskId)
+    if job_artifacts is None:
+        LOG.warning("We should not have received an empty job")
         return files
+    for f in job_artifacts['artifacts']:
+        if f['name'].endswith('tests.zip'):
+            if not test_url:
+                # str() because of unicode issues on mac
+                test_url = str(f['name'])
+                LOG.info("Found test url %s." % test_url)
 
-    properties = job_status.get("properties")
+        elif f['name'].endswith('test_packages.json'):
+            test_packages_url = str(f['name'])
+            LOG.info("Found a test packages url %s." % test_packages_url)
 
-    if not properties:
-        LOG.error(str(job_status))
-        raise MozciError("The status of the job is expected to have a "
-                         "properties key, however, it is missing.")
+        elif not any(f['name'].endswith(s) for s in ('code-coverage-gcno.zip',
+                                                     'crashreporter-symbols.zip')):
+            if any(f['name'].endswith(s) for s in INSTALLER_SUFFIXES):
+                installer_url = str(f['name'])
+                LOG.info("Found installer url %s." % installer_url)
 
-    LOG.debug("We want to find the files needed to trigger %s" %
-              properties["buildername"])
-
-    # We need the packageUrl, and one of testsUrl and testPackagesUrl,
-    # preferring testPackagesUrl.
-    if 'packageUrl' in properties:
-        files['packageUrl'] = properties['packageUrl']
-
-    if 'testPackagesUrl' in properties:
-        files['testsUrl'] = properties['testPackagesUrl']
-    elif 'testsUrl' in properties:
-        files['testsUrl'] = properties['testsUrl']
+    files['packageUrl'] = installer_url
+    files['testsUrl'] = test_packages_url if test_packages_url else test_url
 
     return files
 
