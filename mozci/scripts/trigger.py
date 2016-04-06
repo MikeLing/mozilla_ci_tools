@@ -352,7 +352,7 @@ def main():
 
     # Mode #3: Trigger jobs based on revision list modifiers
     if not (options.includes or options.exclude or options.failed_jobs):
-        buildernames = options.buildernames
+        job_names = options.buildernames
 
     # Mode 4 - Schedule every builder matching --includes and does not match --exclude.
     elif options.includes or options.exclude:
@@ -362,12 +362,12 @@ def main():
         if options.exclude:
             filters_out = options.exclude.split(',')
 
-        buildernames = filter_buildernames(
+        job_names = filter_buildernames(
             buildernames=query_builders(repo_name=repo_name),
             include=filters_in,
             exclude=filters_out
         )
-        if len(buildernames) == 0:
+        if len(job_names) == 0:
             LOG.info("0 jobs match these filters. please try again.")
             return
 
@@ -380,16 +380,16 @@ def main():
                 revision=revision,
                 status=SUCCESS)
             # We will filter out all the existing job from those successful job we have.
-            buildernames = [buildername for buildername in successful_jobs
-                            if buildername in buildernames]
+            job_names = [buildername for buildername in successful_jobs
+                         if buildername in job_names]
             cont = raw_input("The ones which have existing builds out of %i jobs will be triggered,\
-                             do you wish to continue? y/n/d (d=show details) " % len(buildernames))
+                             do you wish to continue? y/n/d (d=show details) " % len(job_names))
         else:
             cont = raw_input("%i jobs will be triggered, do you wish to continue? \
-                              y/n/d (d=show details) " % len(buildernames))
+                              y/n/d (d=show details) " % len(job_names))
 
         if cont.lower() == 'd':
-            LOG.info("The following jobs will be triggered: \n %s" % '\n'.join(buildernames))
+            LOG.info("The following jobs will be triggered: \n %s" % '\n'.join(job_names))
             cont = raw_input("Do you wish to continue? y/n ")
 
         if cont.lower() != 'y':
@@ -397,12 +397,12 @@ def main():
 
     # Mode 5: Use --failed-jobs to trigger jobs for particular revision
     elif options.failed_jobs:
-        buildernames = TreeherderApi().find_all_jobs_by_status(
+        job_names = TreeherderApi().find_all_jobs_by_status(
             repo_name=repo_name,
             revision=revision,
             status=WARNING)
 
-    for buildername in buildernames:
+    for buildername in job_names:
         revlist = determine_revlist(
             repo_url=repo_url,
             buildername=buildername,

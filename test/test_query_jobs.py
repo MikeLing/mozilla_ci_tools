@@ -372,7 +372,7 @@ class TestTreeherderApiGetAllJobsByStatus(unittest.TestCase):
         self.assertEqual(self.query_api.find_all_jobs_by_status(
             self.repo_name, self.revision, SUCCESS),
             ["Ubuntu VM 12.04 x64 mozilla-inbound opt test mochitest-1",
-             "web-platform-tests-e10s-6"])
+             "[TC] - Linux64 web-platform-tests-e10s-6"])
 
     @patch('mozci.query_jobs.TreeherderApi.get_all_jobs',
            return_value=json.loads(MOCK_JOBS % {'result': "testfailed", 'state': "completed"}))
@@ -383,7 +383,7 @@ class TestTreeherderApiGetAllJobsByStatus(unittest.TestCase):
         self.assertEqual(self.query_api.find_all_jobs_by_status(
             self.repo_name, self.revision, FAILURE),
             ["Ubuntu VM 12.04 x64 mozilla-inbound opt test mochitest-1",
-             "web-platform-tests-e10s-6"])
+             "[TC] - Linux64 web-platform-tests-e10s-6"])
 
     @patch('mozci.query_jobs.TreeherderApi.get_all_jobs',
            return_value=json.loads(MOCK_JOBS % {'result': "unknown", 'state': "pending"}))
@@ -394,4 +394,4 @@ class TestTreeherderApiGetAllJobsByStatus(unittest.TestCase):
         self.assertEqual(self.query_api.find_all_jobs_by_status(
             self.repo_name, self.revision, PENDING),
             ["Ubuntu VM 12.04 x64 mozilla-inbound opt test mochitest-1",
-             "web-platform-tests-e10s-6"])
+             "[TC] - Linux64 web-platform-tests-e10s-6"])

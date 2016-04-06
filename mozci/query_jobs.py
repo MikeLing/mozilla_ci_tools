@@ -309,7 +309,7 @@ class TreeherderApi(QueryApi):
                 continue
             if job_status == status:
                 if job['build_system_type'] == 'taskcluster':
-                    job_name = job['job_type_name'].split(' ')[-1]
+                    job_name = job['job_type_name']
                 else:
                     job_name = job['ref_data_name']
                 builder_names.append(job_name)
