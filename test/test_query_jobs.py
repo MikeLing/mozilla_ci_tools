@@ -130,7 +130,7 @@ MOCK_JOBS = """
     "end_timestamp": 1455884086,
     "build_platform": "lint",
     "job_guid": "6657633e-a463-4955-bc9c-3a561b236308/0",
-    "job_type_name": "[TC] - ESLint",
+    "job_type_name": "[TC] - Linux64 web-platform-tests-e10s-6",
     "id": 22009433,
     "platform": "lint",
     "state": "%(state)s",
@@ -370,8 +370,9 @@ class TestTreeherderApiGetAllJobsByStatus(unittest.TestCase):
     def test_successful_job(self, get_all_jobs, get_job_status):
         """Test TreeherderApi find_all_jobs_by_status with a successful job."""
         self.assertEqual(self.query_api.find_all_jobs_by_status(
-            self.repo_name, self.revision, SUCCESS), ["Ubuntu VM 12.04 x64 mozilla-inbound opt test mochitest-1",
-                                                      "ESLint"])
+            self.repo_name, self.revision, SUCCESS),
+            ["Ubuntu VM 12.04 x64 mozilla-inbound opt test mochitest-1",
+             "web-platform-tests-e10s-6"])
 
     @patch('mozci.query_jobs.TreeherderApi.get_all_jobs',
            return_value=json.loads(MOCK_JOBS % {'result': "testfailed", 'state': "completed"}))
@@ -380,8 +381,9 @@ class TestTreeherderApiGetAllJobsByStatus(unittest.TestCase):
     def test_failed_job(self, get_all_jobs, get_job_status):
         """Test TreeherderApi find_all_jobs_by_status with a failed job."""
         self.assertEqual(self.query_api.find_all_jobs_by_status(
-            self.repo_name, self.revision, FAILURE), ["Ubuntu VM 12.04 x64 mozilla-inbound opt test mochitest-1",
-                                                      "ESLint"])
+            self.repo_name, self.revision, FAILURE),
+            ["Ubuntu VM 12.04 x64 mozilla-inbound opt test mochitest-1",
+             "web-platform-tests-e10s-6"])
 
     @patch('mozci.query_jobs.TreeherderApi.get_all_jobs',
            return_value=json.loads(MOCK_JOBS % {'result': "unknown", 'state': "pending"}))
@@ -390,5 +392,6 @@ class TestTreeherderApiGetAllJobsByStatus(unittest.TestCase):
     def test_pending_job(self, get_all_jobs, get_job_status):
         """Test TreeherderApi find_all_jobs_by_status with a pending job."""
         self.assertEqual(self.query_api.find_all_jobs_by_status(
-            self.repo_name, self.revision, PENDING), ["Ubuntu VM 12.04 x64 mozilla-inbound opt test mochitest-1",
-                                                      "ESLint"])
+            self.repo_name, self.revision, PENDING),
+            ["Ubuntu VM 12.04 x64 mozilla-inbound opt test mochitest-1",
+             "web-platform-tests-e10s-6"])
