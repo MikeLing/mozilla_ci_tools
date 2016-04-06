@@ -355,7 +355,7 @@ class TestBuildApiGetMatchingJobs(unittest.TestCase):
                 'Invalid buildername'), [])
 
 
-class TestTestTreeherderApiGetAllJobsByStatus(unittest.TestCase):
+class TestTreeherderApiGetAllJobsByStatus(unittest.TestCase):
     """Test TreeherderApi fetch all jobs(buildernames for now) by job's status."""
 
     def setUp(self):

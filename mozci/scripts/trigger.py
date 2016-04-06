@@ -372,14 +372,15 @@ def main():
             return
 
         if options.existing_only:
-            # we will query all successful job by given revision and only keep
-            # the those ones within the builder list been filted by exclude and include.
+            # We query all succesful jobs for a given revision and filter
+            # them by include/exclude filters.
             trigger_build_if_missing = False
-            existing_buildername = TreeherderApi().find_all_jobs_by_status(
+            successful_jobs = TreeherderApi().find_all_jobs_by_status(
                 repo_name=repo_name,
                 revision=revision,
                 status=SUCCESS)
-            buildernames = [buildername for buildername in existing_buildername
+            # We will filter out all the existing job from those successful job we have.
+            buildernames = [buildername for buildername in successful_jobs
                             if buildername in buildernames]
             cont = raw_input("The ones which have existing builds out of %i jobs will be triggered,\
                              do you wish to continue? y/n/d (d=show details) " % len(buildernames))
